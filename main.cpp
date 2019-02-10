@@ -51,6 +51,15 @@ unsigned count8SIMD(int8_t *in, unsigned inCount, int8_t x)
    return count;
 }
 
+int fib(int x)
+{
+   if (x == 0)
+      return 0;
+   else if (x == 1)
+      return 1;
+   return fib(x - 1) + fib(x - 2);
+}
+
 int main()
 {
    int32_t inCount = 1024ull * 1024 * 128;
@@ -71,10 +80,10 @@ int main()
 
    PerfEvent e;
    for (auto sel : {1, 10, 50, 90, 99}) {
-      // second parameter is scale, all the results except time, IPC,  CPU,  GHz are normalized by this scale
-      PerfEventBlock b(e, inCount);
       e.setParam("name", "scalar  8");
       e.setParam("selectivity", sel);
+      // second parameter is scale, all the results except time, IPC,  CPU,  GHz are normalized by this scale
+      PerfEventBlock b(e, inCount);
 
       unsigned chunkCount = (inCount * sizeof(uint8_t)) / chunkSize;
       for (unsigned i = 0; i < chunkCount; i++)
@@ -82,13 +91,22 @@ int main()
    }
 
    for (auto sel : {1, 10, 50, 90, 99}) {
-      PerfEventBlock b(e, inCount);
       e.setParam("name", "SIMD  8");
       e.setParam("selectivity", sel);
+      PerfEventBlock b(e, inCount);
 
       unsigned chunkCount = (inCount * sizeof(uint8_t)) / chunkSize;
       for (unsigned i = 0; i < chunkCount; i++)
          count8SIMD(in8, inCount / chunkCount, sel);
+   }
+
+   {
+      for (auto until : {10, 40}) {
+         e.setParam("name", "Fib");
+         e.setParam("until", until);
+         PerfEventBlock b(e, 1);
+         fib(until);
+      }
    }
 
    return 0;
